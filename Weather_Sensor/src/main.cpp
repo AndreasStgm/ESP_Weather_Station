@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include <DHT_U.h>
 #include <WiFi.h>
 #include <esp_now.h>
 
