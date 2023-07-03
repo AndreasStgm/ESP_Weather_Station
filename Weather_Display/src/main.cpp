@@ -6,7 +6,7 @@
 
 // ===== Constant/Variable Declarations =====
 
-const uint8_t outdoorSensorMac[] = {0x69, 0x69, 0x69, 0x69, 0x69, 0x69};
+const uint8_t outdoorSensorMac[] = {0x3C, 0x61, 0x05, 0x12, 0x99, 0x8C};
 
 TFT_eSPI display = TFT_eSPI();
 
