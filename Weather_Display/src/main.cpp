@@ -12,7 +12,7 @@ TFT_eSPI display = TFT_eSPI();
 
 // ===== Function Declarations =====
 
-// placeholder description
+// Prints a message 'text' with the status 'status' as 'color'
 void printStatusMessage(char *text, char *status, uint16_t color);
 
 void setup()

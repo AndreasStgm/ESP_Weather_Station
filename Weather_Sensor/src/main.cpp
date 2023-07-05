@@ -1,25 +1,21 @@
 #include <Arduino.h>
 
-#include <DHT_U.h>
+#include <Adafruit_AHTX0.h>
 #include <WiFi.h>
 #include <esp_now.h>
 
-// put function declarations here:
-int myFunction(int, int);
+// ===== Constant/Variable Declarations =====
+
+Adafruit_AHTX0 sensor = Adafruit_AHTX0();
+
+// ===== Function Declarations =====
 
 void setup()
 {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
 }
 
-// put function definitions here:
-int myFunction(int x, int y)
-{
-  return x + y;
-}
+// ===== Function Definitions =====
