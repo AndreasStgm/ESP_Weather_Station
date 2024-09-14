@@ -55,11 +55,19 @@ void displaySensorReadings(bool isOutside, float temperature, float relativeHumi
 void switchDisplayButtonISR();
 // Handles the transition between the possible states
 void stateHandler();
+// Handles the incoming data from ESP-Now
+void OnDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength);
 
 // ===== Microcontroller Setup and Loop functions =====
 
 void setup()
 {
+  // TODO: Remove after no longer necessary
+  lastInsideWeatherData.temperature = 20.4;
+  lastInsideWeatherData.relativeHumidity = 54.45;
+  lastOutsideWeatherData.temperature = -0.15;
+  lastOutsideWeatherData.relativeHumidity = 15.65;
+
   // Configure button as input and attach an intterupt service routing (ISR)
   pinMode(SWITCH_BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(SWITCH_BUTTON_PIN), switchDisplayButtonISR, CHANGE);
@@ -101,6 +109,16 @@ void setup()
   else
   {
     printStatusMessage("ESP-Now: ", "OK", TFT_GREEN);
+  }
+
+  // Register the receiving callback function for ESP-Now messages
+  if (esp_now_register_recv_cb(OnDataReceived) != ESP_OK)
+  {
+    printStatusMessage("CB Register: ", "FAILED", TFT_RED);
+  }
+  else
+  {
+    printStatusMessage("CB Register: ", "OK", TFT_GREEN);
   }
 
   display.println("Complete!");
@@ -148,12 +166,12 @@ void displaySensorReadings(bool isOutside, float temperature, float relativeHumi
 
   // Display temperature with icon
   display.pushImage(0, 0, 64, 64, thermostat);
-  display.setCursor(64, 16, 6);
-  display.print(temperature);
+  display.setCursor(temperature < 0 ? 64 : 81, 16, 6); // Account for the possible minus when dealing with temps below zero
+  display.print(temperature, 1);
   // Display humidity with icon
   display.pushImage(0, 64, 64, 64, humidity);
-  display.setCursor(64, 80, 6);
-  display.print(relativeHumidity);
+  display.setCursor(81, 80, 6);
+  display.print(relativeHumidity, 1);
 }
 
 void switchDisplayButtonISR()
@@ -209,9 +227,22 @@ void stateHandler()
     outputDisplayState = DisplayState::WAITING;
     break;
   case DisplayState::WAITING:
+    // Do a new reading of the inside sensors every x amount of time
     break;
   default:
     printStatusMessage("State Handler: ", "ERROR", TFT_RED);
     break;
+  }
+}
+
+void OnDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength)
+{
+  // Copy the received data into the data structure
+  memcpy(&lastOutsideWeatherData, incomingData, sizeof(incomingData));
+
+  // If the display is updating the outside values, update the display
+  if (isCurrentlyDisplayingOutside)
+  {
+    outputDisplayState = DisplayState::UPDATE;
   }
 }
