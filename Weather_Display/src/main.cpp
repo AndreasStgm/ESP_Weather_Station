@@ -4,9 +4,12 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-// Icons
+// ===== Icons =====
 
-#include "thermostat.h"
+#include "icon_thermostat.h"
+#include "icon_humidity.h"
+#include "icon_outside_small.h"
+#include "icon_inside_small.h"
 
 // ===== Constant/Variable Declarations =====
 
@@ -16,6 +19,8 @@ TFT_eSPI display = TFT_eSPI();
 
 // Prints a message 'text' with the status 'status' as 'color'
 void printStatusMessage(char *text, char *status, uint16_t color);
+// Displays the temperature and relative humidity for the in- or outside
+void displaySensorReadings(bool isOutside, float temperature, float relativeHumidity);
 
 void setup()
 {
@@ -51,11 +56,8 @@ void setup()
 
 void loop()
 {
-  display.fillScreen(TFT_BLACK);
-  display.setCursor(0, 4, 4);
-  display.println("Outdoor: 69\u00B0C");
+  displaySensorReadings(true, 69.69, 69.69);
 
-  display.pushImage(20, 20, 96, 96, thermostat);
   delay(5000);
 }
 
@@ -67,4 +69,36 @@ void printStatusMessage(char *text, char *status, uint16_t color)
   display.setTextColor(color);
   display.println(status);
   display.setTextColor(TFT_WHITE);
+}
+
+void displaySensorReadings(bool isOutside, float temperature, float relativeHumidity)
+{
+  // Clear the screen
+  display.fillScreen(TFT_BLACK);
+
+  // Rotate text to write sensor location
+  display.setRotation(2);
+  if (isOutside)
+  {
+    display.pushImage(0, 0, 32, 32, outside_small);
+    display.setCursor(32, 8, 4);
+    display.print("Outside");
+  }
+  else
+  {
+    display.pushImage(0, 0, 32, 32, inside_small);
+    display.setCursor(32, 8, 4);
+    display.print("Inside");
+  }
+  // Reset text rotation back to normal
+  display.setRotation(1);
+
+  // Display temperature with icon
+  display.pushImage(0, 0, 64, 64, thermostat);
+  display.setCursor(64, 16, 6);
+  display.print(temperature);
+  // Display humidity with icon
+  display.pushImage(0, 64, 64, 64, humidity);
+  display.setCursor(64, 80, 6);
+  display.print(relativeHumidity);
 }
