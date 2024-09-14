@@ -4,9 +4,11 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-// ===== Constant/Variable Declarations =====
+// Icons
 
-const uint8_t outdoorSensorMac[] = {0x3C, 0x61, 0x05, 0x12, 0x99, 0x8C};
+#include "thermostat.h"
+
+// ===== Constant/Variable Declarations =====
 
 TFT_eSPI display = TFT_eSPI();
 
@@ -29,30 +31,18 @@ void setup()
     delay(1000);
     display.print(".");
   }
-  display.println("");
+  display.fillScreen(TFT_BLACK);
+  display.setCursor(0, 4, 4);
+  printStatusMessage("Display: ", "OK", TFT_GREEN);
 
   WiFi.mode(WIFI_MODE_STA);
   if (esp_now_init() != ESP_OK) // Check if ESP_NOW started successfully
   {
-    printStatusMessage("ESP-NOW: ", "FAILED", TFT_RED);
+    printStatusMessage("ESP-Now: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("ESP-NOW: ", "OK", TFT_GREEN);
-  }
-
-  esp_now_peer_info_t newPeer;
-  newPeer.channel = 0;
-  newPeer.encrypt = false;
-  newPeer.ifidx = WIFI_IF_STA;
-  memcpy(newPeer.peer_addr, outdoorSensorMac, sizeof(outdoorSensorMac));
-  if (esp_now_add_peer(&newPeer) != ESP_OK) // Check if peer was successfully created
-  {
-    printStatusMessage("Outdoor Added: ", "FAILED", TFT_RED);
-  }
-  else
-  {
-    printStatusMessage("Outdoor Added: ", "OK", TFT_GREEN);
+    printStatusMessage("ESP-Now: ", "OK", TFT_GREEN);
   }
 
   display.println("Complete!");
@@ -63,7 +53,9 @@ void loop()
 {
   display.fillScreen(TFT_BLACK);
   display.setCursor(0, 4, 4);
-  display.println("Outdoor: 69°C");
+  display.println("Outdoor: 69\u00B0C");
+
+  display.pushImage(20, 20, 96, 96, thermostat);
   delay(5000);
 }
 
