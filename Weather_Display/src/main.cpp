@@ -11,9 +11,35 @@
 #include "icon_outside_small.h"
 #include "icon_inside_small.h"
 
-// ===== Constant/Variable Declarations =====
+// ===== Structure/Enum Declarations =====
+
+// Structure for receiving data from outdoor sensor
+struct WeatherSensorMessage
+{
+  float temperature;
+  float relativeHumidity;
+};
+// Enum for keeping track of the state of the buttons, mostly used for debouncing
+enum ButtonState
+{
+  RELEASED,
+  PRESSED
+};
+// Enum for keeping track of the state of the display, if it needs to be updated or not
+enum DisplayState
+{
+  WAITING,
+  UPDATE
+};
+
+// ===== Variable/Constant Declarations =====
 
 TFT_eSPI display = TFT_eSPI();
+WeatherSensorMessage incomingWeatherData;
+ButtonState switchButtonState = ButtonState::RELEASED;
+DisplayState outputDisplayState = DisplayState::WAITING;
+
+const uint8_t buttonDebounceTime = 50;
 
 // ===== Function Declarations =====
 
