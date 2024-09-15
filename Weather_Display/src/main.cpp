@@ -48,7 +48,7 @@ const uint8_t SWITCH_BUTTON_PIN = 35;
 // ===== Function Declarations =====
 
 // Prints a message 'text' with the status 'status' as 'color'
-void printStatusMessage(char *text, char *status, uint16_t color);
+void printStatusMessage(String text, String status, uint16_t color);
 // Displays the temperature and relative humidity for the in- or outside
 void displaySensorReadings(bool isOutside, float temperature, float relativeHumidity);
 // ISR for handling when the switch button is pressed
@@ -56,18 +56,12 @@ void switchDisplayButtonISR();
 // Handles the transition between the possible states
 void stateHandler();
 // Handles the incoming data from ESP-Now
-void OnDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength);
+void onDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength);
 
 // ===== Microcontroller Setup and Loop functions =====
 
 void setup()
 {
-  // TODO: Remove after no longer necessary
-  lastInsideWeatherData.temperature = 20.4;
-  lastInsideWeatherData.relativeHumidity = 54.45;
-  lastOutsideWeatherData.temperature = -0.15;
-  lastOutsideWeatherData.relativeHumidity = 15.65;
-
   // Configure button as input and attach an intterupt service routing (ISR)
   pinMode(SWITCH_BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(SWITCH_BUTTON_PIN), switchDisplayButtonISR, CHANGE);
@@ -93,13 +87,13 @@ void setup()
   printStatusMessage("Display: ", "OK", TFT_GREEN);
 
   // Start WiFi module in station mode
-  if (WiFi.mode(WIFI_MODE_STA))
+  if (!WiFi.mode(WIFI_MODE_STA))
   {
-    printStatusMessage("Wireless: ", "OK", TFT_GREEN);
+    printStatusMessage("Wireless: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("Wireless: ", "FAILED", TFT_RED);
+    printStatusMessage("Wireless: ", "OK", TFT_GREEN);
   }
   // Start ESP-Now
   if (esp_now_init() != ESP_OK)
@@ -112,7 +106,7 @@ void setup()
   }
 
   // Register the receiving callback function for ESP-Now messages
-  if (esp_now_register_recv_cb(OnDataReceived) != ESP_OK)
+  if (esp_now_register_recv_cb(onDataReceived) != ESP_OK)
   {
     printStatusMessage("CB Register: ", "FAILED", TFT_RED);
   }
@@ -134,7 +128,7 @@ void loop()
 
 // ===== Function Definitions =====
 
-void printStatusMessage(char *text, char *status, uint16_t color)
+void printStatusMessage(String text, String status, uint16_t color)
 {
   display.print(text);
   display.setTextColor(color);
@@ -235,10 +229,10 @@ void stateHandler()
   }
 }
 
-void OnDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength)
+void onDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength)
 {
   // Copy the received data into the data structure
-  memcpy(&lastOutsideWeatherData, incomingData, sizeof(incomingData));
+  memcpy(&lastOutsideWeatherData, incomingData, sizeof(lastOutsideWeatherData));
 
   // If the display is updating the outside values, update the display
   if (isCurrentlyDisplayingOutside)
