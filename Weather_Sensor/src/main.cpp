@@ -19,6 +19,7 @@ Adafruit_AHTX0 sensor = Adafruit_AHTX0();
 
 WeatherSensorMessage outgoingWeatherData;
 
+const uint8_t minutesDelayBetweenMeasurements = 1;
 const uint8_t macAddressDisplay[] = {0x24, 0x62, 0xAB, 0xDC, 0x49, 0xEC};
 
 // ===== Function Declarations =====
@@ -90,6 +91,16 @@ void setup()
         printStatusMessage("AHT20", "Initialisation", "OK");
     }
 
+    // Configure the sleep timer for x amount of minutes (us * 1000(ms) * 1000(s) * 60(m))
+    if (esp_sleep_enable_timer_wakeup(minutesDelayBetweenMeasurements * 1000 * 1000 * 60) != ESP_OK)
+    {
+        printStatusMessage("DeepSleep", "Enabled", "FAILED");
+    }
+    else
+    {
+        printStatusMessage("DeepSleep", "Enabled", "OK");
+    }
+
     Serial.println("Complete!");
 }
 
@@ -114,7 +125,6 @@ void loop()
 
         esp_now_send(macAddressDisplay, (uint8_t *)&outgoingWeatherData, sizeof(outgoingWeatherData));
     }
-    delay(30000);
 }
 
 // ===== Function Definitions =====
@@ -134,4 +144,10 @@ void onDataSent(const uint8_t *sendToMacAddress, esp_now_send_status_t status)
     {
         printStatusMessage("ESP-Now", "Send Message", "OK");
     }
+
+    // Preparing the serial port for sleep
+    printStatusMessage("DeepSleep", "Start", "NOW");
+    Serial.flush();
+    // Putting the microcontroller to sleep
+    esp_deep_sleep_start();
 }
