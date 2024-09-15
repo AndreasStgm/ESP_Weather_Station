@@ -19,6 +19,8 @@ To ensure good communication an external antenna is recommended as the PCB anten
 
 The display shows the temperature and relative humidity of the outside and inside modules. Which values are shown can be selected by pressing the button.
 
+![PXL_20240915_124104659](https://github.com/user-attachments/assets/dfbb65c6-23b9-4056-8619-d9b4b6e5b640)
+
 ## Features to be added:
 
 | Order | Description                                        | State       |
