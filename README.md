@@ -5,7 +5,7 @@ The inside module is powered through USB-C and the outside module is powered by 
 
 ## Power
 
-The outside module is but into a hibernation state after sending out its measurement to preserve the most amount of battery life.
+The outside module is put into a hibernation state after sending out its measurement to preserve the most amount of battery life.
 
 When the wireless module is active power draw is around 120mA. When sleeping it should be around 5µA.
 
@@ -29,5 +29,6 @@ The display shows the temperature and relative humidity of the outside and insid
 | 2     | Sending data from outdoor sensor to indoor display | DONE        |
 | 3     | Outdoor sensor hibernation                         | DONE        |
 | 4     | Measurement of indoor sensor                       | NOT STARTED |
-| 5     | Creation of custom PCB                             | NOT STARTED |
-| 6     | Creation of housing for outdoor mounting           | NOT STARTED |
+| 5     | Display history of measurements with a graph       | NOT STARTED |
+| 6     | Creation of custom PCB                             | NOT STARTED |
+| 7     | Creation of housing for outdoor mounting           | NOT STARTED |
