@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include <Adafruit_AHTX0.h>
 #include <TFT_eSPI.h>
 #include <WiFi.h>
 #include <esp_now.h>
@@ -35,6 +36,7 @@ enum DisplayState
 // ===== Variable/Constant Declarations =====
 
 TFT_eSPI display = TFT_eSPI();
+Adafruit_AHTX0 insideSensor = Adafruit_AHTX0();
 
 bool isCurrentlyDisplayingOutside = true;
 WeatherSensorMessage lastOutsideWeatherData;
@@ -44,6 +46,9 @@ DisplayState outputDisplayState = DisplayState::UPDATE; // Initial state is set 
 
 const uint8_t BUTTON_DEBOUNCE_TIME = 50;
 const uint8_t SWITCH_BUTTON_PIN = 35;
+
+const uint16_t millisecondsDelayBetweenMeasurements = 60000;
+uint16_t currentDelay = 60000;
 
 // ===== Function Declarations =====
 
@@ -113,6 +118,16 @@ void setup()
   else
   {
     printStatusMessage("CB Register: ", "OK", TFT_GREEN);
+  }
+
+  // Start the AHT20 sensor
+  if (!insideSensor.begin())
+  {
+    printStatusMessage("AHT20: ", "FAILED", TFT_RED);
+  }
+  else
+  {
+    printStatusMessage("AHT20: ", "OK", TFT_GREEN);
   }
 
   display.println("Complete!");
@@ -222,6 +237,31 @@ void stateHandler()
     break;
   case DisplayState::WAITING:
     // Do a new reading of the inside sensors every x amount of time
+    if (currentDelay >= millisecondsDelayBetweenMeasurements)
+    {
+      sensors_event_t temperature, relativeHumidity;
+      if (!insideSensor.getEvent(&relativeHumidity, &temperature))
+      {
+        printStatusMessage("AHT20 Sensor Read: ", "FAILED", TFT_RED);
+      }
+      else
+      {
+        // Set the readings in the data structure for sending
+        lastInsideWeatherData.temperature = temperature.temperature;
+        lastInsideWeatherData.relativeHumidity = relativeHumidity.relative_humidity;
+
+        // If the display is showing the inside values, update the display
+        if (!isCurrentlyDisplayingOutside)
+        {
+          outputDisplayState = DisplayState::UPDATE;
+        }
+      }
+      currentDelay = 0;
+    }
+    else
+    {
+      currentDelay++;
+    }
     break;
   default:
     printStatusMessage("State Handler: ", "ERROR", TFT_RED);
@@ -234,7 +274,7 @@ void onDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData
   // Copy the received data into the data structure
   memcpy(&lastOutsideWeatherData, incomingData, sizeof(lastOutsideWeatherData));
 
-  // If the display is updating the outside values, update the display
+  // If the display is showing the outside values, update the display
   if (isCurrentlyDisplayingOutside)
   {
     outputDisplayState = DisplayState::UPDATE;
