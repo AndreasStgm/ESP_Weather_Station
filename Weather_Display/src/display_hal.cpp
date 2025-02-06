@@ -13,6 +13,10 @@ void clearDisplay(TFT_eSPI display)
 // Prints a message 'text' with the status 'status' as 'color'
 void printStatusMessage(TFT_eSPI display, String text, String status, uint16_t color)
 {
+    if (currentTextLine >= maximumTextLines)
+    {
+        clearDisplay(display);
+    }
     display.setCursor(0, 4 + (currentTextLine * 24), 4);
 
     display.print(text);
@@ -20,14 +24,7 @@ void printStatusMessage(TFT_eSPI display, String text, String status, uint16_t c
     display.println(status);
     display.setTextColor(TFT_WHITE);
 
-    if (currentTextLine >= maximumTextLines)
-    {
-        clearDisplay(display);
-    }
-    else
-    {
-        currentTextLine++;
-    }
+    currentTextLine++;
 }
 
 // Displays the temperature and relative humidity for the in- or outside
