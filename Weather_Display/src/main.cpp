@@ -6,15 +6,11 @@
 #include <esp_now.h>
 
 #include "display_hal.h"
+#include "history_array_ops.h"
+#include "weather_sensor_msg.h"
 
 // ===== Structure/Enum Declarations =====
 
-// Structure for receiving data from outdoor sensor
-struct WeatherSensorMessage
-{
-  float temperature;
-  float relativeHumidity;
-};
 // Enum for keeping track of the state of the buttons, mostly used for debouncing
 enum ButtonState
 {
@@ -34,10 +30,11 @@ TFT_eSPI display = TFT_eSPI();
 Adafruit_AHTX0 insideSensor = Adafruit_AHTX0();
 
 bool isCurrentlyDisplayingOutside = true;
-WeatherSensorMessage lastOutsideWeatherData;
-WeatherSensorMessage lastInsideWeatherData;
 ButtonState switchButtonState = ButtonState::RELEASED;
-DisplayState outputDisplayState = DisplayState::UPDATE; // Initial state is set to update so after initialization the readings are displayed
+DisplayState currentDisplayState = DisplayState::UPDATE; // Initial state is set to update so after initialization the readings are displayed
+
+WeatherSensorMessage outsideWeatherHistoryData[HISTORY_SIZE];
+WeatherSensorMessage insideWeatherHistoryData[HISTORY_SIZE];
 
 const uint8_t BUTTON_DEBOUNCE_TIME = 50;
 const uint8_t SWITCH_BUTTON_PIN = 35;
@@ -66,6 +63,17 @@ void setup()
   display.init();
   display.setRotation(1);
   display.fillScreen(TFT_BLACK);
+
+  // TESTING THE GRAPH DRAWING CODE I FOUND
+  Serial.begin(115200);
+  clearDisplay(display);
+  double x, y;
+  bool redrawGraph = true, updateLine = true;
+
+  drawHistoryGraph(display, x, y, redrawGraph, updateLine, insideWeatherHistoryData, true);
+
+  delay(5000);
+  // TEST END
 
   display.setCursor(0, 4, 4);
   display.setTextColor(TFT_WHITE);
@@ -157,7 +165,7 @@ void switchDisplayButtonISR()
       isCurrentlyDisplayingOutside = !isCurrentlyDisplayingOutside;
 
       // The display now has to be updated, so the state is set
-      outputDisplayState = DisplayState::UPDATE;
+      currentDisplayState = DisplayState::UPDATE;
     }
   }
 
@@ -167,22 +175,28 @@ void switchDisplayButtonISR()
 
 void stateHandler()
 {
-  switch (outputDisplayState)
+  switch (currentDisplayState)
   {
   case DisplayState::UPDATE:
     // Determine if outside or inside data should be displayed
     if (isCurrentlyDisplayingOutside)
     {
+      // Get the last item of the array
+      WeatherSensorMessage lastOutsideWeatherData = outsideWeatherHistoryData[HISTORY_SIZE - 1];
+
       // Display outside data
       displaySensorReadings(display, isCurrentlyDisplayingOutside, lastOutsideWeatherData.temperature, lastOutsideWeatherData.relativeHumidity);
     }
     else
     {
+      // Get the last item of the array
+      WeatherSensorMessage lastInsideWeatherData = insideWeatherHistoryData[HISTORY_SIZE - 1];
+
       // Display inside data
       displaySensorReadings(display, isCurrentlyDisplayingOutside, lastInsideWeatherData.temperature, lastInsideWeatherData.relativeHumidity);
     }
     // Complete the state by setting it back to waiting
-    outputDisplayState = DisplayState::WAITING;
+    currentDisplayState = DisplayState::WAITING;
     break;
   case DisplayState::WAITING:
     // Do a new reading of the inside sensors every x amount of time
@@ -195,14 +209,17 @@ void stateHandler()
       }
       else
       {
-        // Set the readings in the data structure for sending
+        // Set the readings in the data structure
+        WeatherSensorMessage lastInsideWeatherData;
         lastInsideWeatherData.temperature = temperature.temperature;
         lastInsideWeatherData.relativeHumidity = relativeHumidity.relative_humidity;
+
+        shiftLastReadingInArray(insideWeatherHistoryData, lastInsideWeatherData);
 
         // If the display is showing the inside values, update the display
         if (!isCurrentlyDisplayingOutside)
         {
-          outputDisplayState = DisplayState::UPDATE;
+          currentDisplayState = DisplayState::UPDATE;
         }
       }
       currentDelay = 0;
@@ -221,11 +238,14 @@ void stateHandler()
 void onDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData, int incomingDataLength)
 {
   // Copy the received data into the data structure
+  WeatherSensorMessage lastOutsideWeatherData;
   memcpy(&lastOutsideWeatherData, incomingData, sizeof(lastOutsideWeatherData));
+
+  shiftLastReadingInArray(outsideWeatherHistoryData, lastOutsideWeatherData);
 
   // If the display is showing the outside values, update the display
   if (isCurrentlyDisplayingOutside)
   {
-    outputDisplayState = DisplayState::UPDATE;
+    currentDisplayState = DisplayState::UPDATE;
   }
 }
