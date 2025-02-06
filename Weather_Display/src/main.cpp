@@ -30,22 +30,27 @@ TFT_eSPI display = TFT_eSPI();
 Adafruit_AHTX0 insideSensor = Adafruit_AHTX0();
 
 bool isCurrentlyDisplayingOutside = true;
-ButtonState switchButtonState = ButtonState::RELEASED;
+ButtonState switchDisplayButtonState = ButtonState::RELEASED;
+bool isCurrentlyDisplayingHistory = false;
+ButtonState switchHistoryButtonState = ButtonState::RELEASED;
 DisplayState currentDisplayState = DisplayState::UPDATE; // Initial state is set to update so after initialization the readings are displayed
 
 WeatherSensorMessage outsideWeatherHistoryData[HISTORY_SIZE];
 WeatherSensorMessage insideWeatherHistoryData[HISTORY_SIZE];
 
 const uint8_t BUTTON_DEBOUNCE_TIME = 50;
-const uint8_t SWITCH_BUTTON_PIN = 35;
+const uint8_t SWITCH_LOCATION_BUTTON_PIN = 35;
+const uint8_t SWITCH_HISTORY_BUTTON_PIN = 0;
 
 const uint16_t millisecondsDelayBetweenMeasurements = 60000;
 uint16_t currentDelay = 60000;
 
 // ===== Function Declarations =====
 
-// ISR for handling when the switch button is pressed
+// ISR for handling when the switch location button is pressed
 void switchDisplayButtonISR();
+// ISR for handling when the switch history button is pressed
+void switchHistoryButtonISR();
 // Handles the transition between the possible states
 void stateHandler();
 // Handles the incoming data from ESP-Now
@@ -55,9 +60,12 @@ void onDataReceived(const uint8_t *senderMacAddress, const uint8_t *incomingData
 
 void setup()
 {
-  // Configure button as input and attach an intterupt service routing (ISR)
-  pinMode(SWITCH_BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SWITCH_BUTTON_PIN), switchDisplayButtonISR, CHANGE);
+  // Configure buttons as inputs and attach interrupt service routines (ISRs)
+  pinMode(SWITCH_LOCATION_BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SWITCH_LOCATION_BUTTON_PIN), switchDisplayButtonISR, CHANGE);
+
+  pinMode(SWITCH_HISTORY_BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SWITCH_HISTORY_BUTTON_PIN), switchHistoryButtonISR, CHANGE);
 
   // Start display, provide some delay for settling and clear
   display.init();
@@ -150,19 +158,52 @@ void switchDisplayButtonISR()
   if (cycle_interrupt_time - last_cycle_interrupt_time > BUTTON_DEBOUNCE_TIME)
   {
     // And the button was in a released state
-    if (switchButtonState == ButtonState::RELEASED)
+    if (switchDisplayButtonState == ButtonState::RELEASED)
     {
       // The button now is being pressed (detecting the edge from unpressed to pressed)
-      switchButtonState = ButtonState::PRESSED;
+      switchDisplayButtonState = ButtonState::PRESSED;
     }
     // And the button was in the pressed state
-    else if (switchButtonState == ButtonState::PRESSED)
+    else if (switchDisplayButtonState == ButtonState::PRESSED)
     {
       // The button now has been released again after pressing (detecting the edge from pressed to unpressed)
-      switchButtonState = ButtonState ::RELEASED;
+      switchDisplayButtonState = ButtonState ::RELEASED;
 
       // Switch from displaying outside to inside or vice versa
       isCurrentlyDisplayingOutside = !isCurrentlyDisplayingOutside;
+
+      // The display now has to be updated, so the state is set
+      currentDisplayState = DisplayState::UPDATE;
+    }
+  }
+
+  // The ISR is now completed, the current time is now the last time for the next time the ISR is triggered
+  last_cycle_interrupt_time = cycle_interrupt_time;
+}
+
+void switchHistoryButtonISR()
+{
+  // Assigning two longs between which the taken time in ms will be counted to debounce the button input
+  static unsigned long last_cycle_interrupt_time = 0;
+  unsigned long cycle_interrupt_time = millis();
+
+  // If the current time is longer than the required debounce time
+  if (cycle_interrupt_time - last_cycle_interrupt_time > BUTTON_DEBOUNCE_TIME)
+  {
+    // And the button was in a released state
+    if (switchHistoryButtonState == ButtonState::RELEASED)
+    {
+      // The button now is being pressed (detecting the edge from unpressed to pressed)
+      switchHistoryButtonState = ButtonState::PRESSED;
+    }
+    // And the button was in the pressed state
+    else if (switchHistoryButtonState == ButtonState::PRESSED)
+    {
+      // The button now has been released again after pressing (detecting the edge from pressed to unpressed)
+      switchHistoryButtonState = ButtonState ::RELEASED;
+
+      // Switch from displaying outside to inside or vice versa
+      isCurrentlyDisplayingHistory = !isCurrentlyDisplayingHistory;
 
       // The display now has to be updated, so the state is set
       currentDisplayState = DisplayState::UPDATE;
