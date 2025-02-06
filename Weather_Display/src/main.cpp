@@ -5,12 +5,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-// ===== Icons =====
-
-#include "icon_thermostat.h"
-#include "icon_humidity.h"
-#include "icon_outside_small.h"
-#include "icon_inside_small.h"
+#include "display_hal.h"
 
 // ===== Structure/Enum Declarations =====
 
@@ -52,10 +47,6 @@ uint16_t currentDelay = 60000;
 
 // ===== Function Declarations =====
 
-// Prints a message 'text' with the status 'status' as 'color'
-void printStatusMessage(String text, String status, uint16_t color);
-// Displays the temperature and relative humidity for the in- or outside
-void displaySensorReadings(bool isOutside, float temperature, float relativeHumidity);
 // ISR for handling when the switch button is pressed
 void switchDisplayButtonISR();
 // Handles the transition between the possible states
@@ -85,52 +76,50 @@ void setup()
     delay(1000);
     display.print(".");
   }
-  display.fillScreen(TFT_BLACK);
-  display.setCursor(0, 4, 4);
+  clearDisplay(display);
 
   // Show correctly functioning display
-  printStatusMessage("Display: ", "OK", TFT_GREEN);
+  printStatusMessage(display, "Display: ", "OK", TFT_GREEN);
 
   // Start WiFi module in station mode
   if (!WiFi.mode(WIFI_MODE_STA))
   {
-    printStatusMessage("Wireless: ", "FAILED", TFT_RED);
+    printStatusMessage(display, "Wireless: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("Wireless: ", "OK", TFT_GREEN);
+    printStatusMessage(display, "Wireless: ", "OK", TFT_GREEN);
   }
   // Start ESP-Now
   if (esp_now_init() != ESP_OK)
   {
-    printStatusMessage("ESP-Now: ", "FAILED", TFT_RED);
+    printStatusMessage(display, "ESP-Now: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("ESP-Now: ", "OK", TFT_GREEN);
+    printStatusMessage(display, "ESP-Now: ", "OK", TFT_GREEN);
   }
 
   // Register the receiving callback function for ESP-Now messages
   if (esp_now_register_recv_cb(onDataReceived) != ESP_OK)
   {
-    printStatusMessage("CB Register: ", "FAILED", TFT_RED);
+    printStatusMessage(display, "CB Register: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("CB Register: ", "OK", TFT_GREEN);
+    printStatusMessage(display, "CB Register: ", "OK", TFT_GREEN);
   }
 
   // Start the AHT20 sensor
   if (!insideSensor.begin())
   {
-    printStatusMessage("AHT20: ", "FAILED", TFT_RED);
+    printStatusMessage(display, "AHT20: ", "FAILED", TFT_RED);
   }
   else
   {
-    printStatusMessage("AHT20: ", "OK", TFT_GREEN);
+    printStatusMessage(display, "AHT20: ", "OK", TFT_GREEN);
   }
 
-  display.println("Complete!");
   delay(2000);
 }
 
@@ -142,46 +131,6 @@ void loop()
 }
 
 // ===== Function Definitions =====
-
-void printStatusMessage(String text, String status, uint16_t color)
-{
-  display.print(text);
-  display.setTextColor(color);
-  display.println(status);
-  display.setTextColor(TFT_WHITE);
-}
-
-void displaySensorReadings(bool isOutside, float temperature, float relativeHumidity)
-{
-  // Clear the screen
-  display.fillScreen(TFT_BLACK);
-
-  // Rotate text to write sensor location
-  display.setRotation(2);
-  if (isOutside)
-  {
-    display.pushImage(0, 0, 32, 32, outside_small);
-    display.setCursor(32, 8, 4);
-    display.print("Outside");
-  }
-  else
-  {
-    display.pushImage(0, 0, 32, 32, inside_small);
-    display.setCursor(32, 8, 4);
-    display.print("Inside");
-  }
-  // Reset text rotation back to normal
-  display.setRotation(1);
-
-  // Display temperature with icon
-  display.pushImage(0, 0, 64, 64, thermostat);
-  display.setCursor(temperature < 0 ? 64 : 81, 16, 6); // Account for the possible minus when dealing with temps below zero
-  display.print(temperature, 1);
-  // Display humidity with icon
-  display.pushImage(0, 64, 64, 64, humidity);
-  display.setCursor(81, 80, 6);
-  display.print(relativeHumidity, 1);
-}
 
 void switchDisplayButtonISR()
 {
@@ -225,12 +174,12 @@ void stateHandler()
     if (isCurrentlyDisplayingOutside)
     {
       // Display outside data
-      displaySensorReadings(isCurrentlyDisplayingOutside, lastOutsideWeatherData.temperature, lastOutsideWeatherData.relativeHumidity);
+      displaySensorReadings(display, isCurrentlyDisplayingOutside, lastOutsideWeatherData.temperature, lastOutsideWeatherData.relativeHumidity);
     }
     else
     {
       // Display inside data
-      displaySensorReadings(isCurrentlyDisplayingOutside, lastInsideWeatherData.temperature, lastInsideWeatherData.relativeHumidity);
+      displaySensorReadings(display, isCurrentlyDisplayingOutside, lastInsideWeatherData.temperature, lastInsideWeatherData.relativeHumidity);
     }
     // Complete the state by setting it back to waiting
     outputDisplayState = DisplayState::WAITING;
@@ -242,7 +191,7 @@ void stateHandler()
       sensors_event_t temperature, relativeHumidity;
       if (!insideSensor.getEvent(&relativeHumidity, &temperature))
       {
-        printStatusMessage("AHT20 Sensor Read: ", "FAILED", TFT_RED);
+        printStatusMessage(display, "AHT20 Sensor Read: ", "FAILED", TFT_RED);
       }
       else
       {
@@ -264,7 +213,7 @@ void stateHandler()
     }
     break;
   default:
-    printStatusMessage("State Handler: ", "ERROR", TFT_RED);
+    printStatusMessage(display, "State Handler: ", "ERROR", TFT_RED);
     break;
   }
 }
