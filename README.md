@@ -29,6 +29,6 @@ The display shows the temperature and relative humidity of the outside and insid
 | 2     | Sending data from outdoor sensor to indoor display | DONE        |
 | 3     | Outdoor sensor hibernation                         | DONE        |
 | 4     | Measurement of indoor sensor                       | DONE        |
-| 5     | Display history of measurements with a graph       | IN PROGRESS |
+| 5     | Display history of measurements with a graph       | DONE        |
 | 6     | Creation of custom PCB                             | NOT STARTED |
 | 7     | Creation of housing for outdoor mounting           | NOT STARTED |

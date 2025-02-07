@@ -234,17 +234,26 @@ void drawHistoryGraph(TFT_eSPI &tft, bool isOutside, WeatherSensorMessage histor
     double yMaxValue = -999;
     double yInterval;
 
+    String graphTitle = "";
+    String graphUnit = "";
+
     for (int i = 0; i < HISTORY_SIZE; i++)
     {
         if (displayTemperature)
         {
             yMinValue = min((float)yMinValue, history[i].temperature - 1);
             yMaxValue = max((float)yMaxValue, history[i].temperature + 1);
+
+            graphTitle = "Temperature";
+            graphUnit = "C";
         }
         else
         {
-            yMinValue = min((float)max(yMinValue, 0.0), history[i].relativeHumidity);
-            yMaxValue = max((float)min(yMaxValue, 100.0), history[i].relativeHumidity);
+            yMinValue = min((float)max(yMinValue, 0.0), history[i].relativeHumidity - 1);
+            yMaxValue = max((float)min(yMaxValue, 100.0), history[i].relativeHumidity + 1);
+
+            graphTitle = "Rel. Humid.";
+            graphUnit = "%";
         }
         yInterval = (yMaxValue - yMinValue) / 10;
     }
@@ -256,12 +265,19 @@ void drawHistoryGraph(TFT_eSPI &tft, bool isOutside, WeatherSensorMessage histor
     drawGraph(tft, x, y, 1,
               xMinValue, xMaxValue, xInterval,
               yMinValue, yMaxValue, yInterval,
-              "Temperature", "", "C",
+              graphTitle, "", graphUnit,
               redrawGraph);
 
     for (x = 0; x < HISTORY_SIZE; x++)
     {
-        y = history[(int)x].temperature;
+        if (displayTemperature)
+        {
+            y = history[(int)x].temperature;
+        }
+        else
+        {
+            y = history[(int)x].relativeHumidity;
+        }
         drawLineOnGraph(tft, x + 1, y, 1,
                         xMinValue, xMaxValue, xInterval,
                         yMinValue, yMaxValue, yInterval,

@@ -32,6 +32,7 @@ Adafruit_AHTX0 insideSensor = Adafruit_AHTX0();
 bool isCurrentlyDisplayingOutside = true;
 ButtonState switchDisplayButtonState = ButtonState::RELEASED;
 bool isCurrentlyDisplayingHistory = false;
+bool isCurrentlyDisplayingTemperatureHistory = true;
 ButtonState switchHistoryButtonState = ButtonState::RELEASED;
 DisplayState currentDisplayState = DisplayState::UPDATE; // Initial state is set to update so after initialization the readings are displayed
 
@@ -39,6 +40,7 @@ WeatherSensorMessage outsideWeatherHistoryData[HISTORY_SIZE];
 WeatherSensorMessage insideWeatherHistoryData[HISTORY_SIZE];
 
 const uint8_t BUTTON_DEBOUNCE_TIME = 50;
+const uint16_t BUTTON_LONG_PRESS_TIME = 1000;
 const uint8_t SWITCH_LOCATION_BUTTON_PIN = 35;
 const uint8_t SWITCH_HISTORY_BUTTON_PIN = 0;
 
@@ -176,8 +178,30 @@ void switchHistoryButtonISR()
   static unsigned long last_cycle_interrupt_time = 0;
   unsigned long cycle_interrupt_time = millis();
 
+  // If the current time is longer than the required long press time
+  if (cycle_interrupt_time - last_cycle_interrupt_time > BUTTON_LONG_PRESS_TIME)
+  {
+    // And the button was in a released state
+    if (switchHistoryButtonState == ButtonState::RELEASED)
+    {
+      // The button now is being pressed (detecting the edge from unpressed to pressed)
+      switchHistoryButtonState = ButtonState::PRESSED;
+    }
+    // And the button was in the pressed state
+    else if (switchHistoryButtonState == ButtonState::PRESSED)
+    {
+      // The button now has been released again after pressing (detecting the edge from pressed to unpressed)
+      switchHistoryButtonState = ButtonState::RELEASED;
+
+      // Switch from displaying temperature history to relative humidity history or vice versa
+      isCurrentlyDisplayingHistory = !isCurrentlyDisplayingHistory;
+
+      // The display now has to be updated, so the state is set
+      currentDisplayState = DisplayState::UPDATE;
+    }
+  }
   // If the current time is longer than the required debounce time
-  if (cycle_interrupt_time - last_cycle_interrupt_time > BUTTON_DEBOUNCE_TIME)
+  else if (cycle_interrupt_time - last_cycle_interrupt_time > BUTTON_DEBOUNCE_TIME)
   {
     // And the button was in a released state
     if (switchHistoryButtonState == ButtonState::RELEASED)
@@ -191,11 +215,14 @@ void switchHistoryButtonISR()
       // The button now has been released again after pressing (detecting the edge from pressed to unpressed)
       switchHistoryButtonState = ButtonState ::RELEASED;
 
-      // Switch from displaying outside to inside or vice versa
-      isCurrentlyDisplayingHistory = !isCurrentlyDisplayingHistory;
+      if (isCurrentlyDisplayingHistory)
+      {
+        // Switch from displaying history to last readings or vice versa
+        isCurrentlyDisplayingTemperatureHistory = !isCurrentlyDisplayingTemperatureHistory;
 
-      // The display now has to be updated, so the state is set
-      currentDisplayState = DisplayState::UPDATE;
+        // The display now has to be updated, so the state is set
+        currentDisplayState = DisplayState::UPDATE;
+      }
     }
   }
 
@@ -214,11 +241,11 @@ void stateHandler()
       // Determine if outside or inside data should be displayed
       if (isCurrentlyDisplayingOutside)
       {
-        drawHistoryGraph(display, isCurrentlyDisplayingOutside, outsideWeatherHistoryData, true);
+        drawHistoryGraph(display, isCurrentlyDisplayingOutside, outsideWeatherHistoryData, isCurrentlyDisplayingTemperatureHistory);
       }
       else
       {
-        drawHistoryGraph(display, isCurrentlyDisplayingOutside, insideWeatherHistoryData, true);
+        drawHistoryGraph(display, isCurrentlyDisplayingOutside, insideWeatherHistoryData, isCurrentlyDisplayingTemperatureHistory);
       }
     }
     else
