@@ -17,14 +17,19 @@ To ensure good communication an external antenna is recommended as the PCB anten
 
 ## UI
 
-The display shows the temperature and relative humidity of the outside and inside modules. Which values are shown can be selected by pressing the button.
+On startup the display shows the last reading of the temperature and relative humidity that the outside module measured.
+By pressing the "switch-display" button the user can choose which values are displayed, the inside module's or the outside module's.
 
 ![Visualisation of the last readings of the indoor temperature and relative humidity.](https://github.com/user-attachments/assets/53315d9a-62ba-4938-864b-64c925a00840)
 
+When the "history-display" button is held for 1 second, the display will show a graph of the last 60 measurements of the temperature or relative humidity.
+By pressing the "switch-display" button the user can choose to display the history for the inside or outside module.
+
 ![Graph with the history of the last 60 readings of the outdoor temperature.](https://github.com/user-attachments/assets/3f10dd2d-9e1a-4b3a-a49c-7a658e872ac2)
 
-![Graph with the history of the last 60 readings of the outdoor relative humidity.](https://github.com/user-attachments/assets/5edb73c3-ed06-4c50-9343-7a479cd4bbae)
+By pressing the "history-display" button the user can switch between these two measurements.
 
+![Graph with the history of the last 60 readings of the outdoor relative humidity.](https://github.com/user-attachments/assets/5edb73c3-ed06-4c50-9343-7a479cd4bbae)
 
 ## Features to be added:
 
