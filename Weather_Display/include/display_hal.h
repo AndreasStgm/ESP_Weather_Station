@@ -27,4 +27,4 @@ void displaySensorReadings(TFT_eSPI display, bool isOutside, float temperature, 
 
 // Displays the historical temperature or relative humidity data from the last hour for the in- or outside
 // The graph drawing code was lifted and modified from the examples of the TFT_eSPI library: https://github.com/Bodmer/TFT_eSPI/blob/master/examples/480%20x%20320/Graph_2/Graph_2.ino
-void drawHistoryGraph(TFT_eSPI &tft, double x, double y, bool &redrawGraph, bool &updateLine, WeatherSensorMessage history[], bool displayTemperature);
+void drawHistoryGraph(TFT_eSPI &tft, bool isOutside, WeatherSensorMessage history[], bool displayTemperature);

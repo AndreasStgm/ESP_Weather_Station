@@ -29,12 +29,8 @@ void printStatusMessage(TFT_eSPI display, String text, String status, uint16_t c
     currentTextLine++;
 }
 
-// Displays the temperature and relative humidity for the in- or outside
-void displaySensorReadings(TFT_eSPI display, bool isOutside, float temperature, float relativeHumidity)
+void displayInsideOutsideIndicator(TFT_eSPI display, bool isOutside)
 {
-    // Clear the screen
-    clearDisplay(display);
-
     // Rotate text to write sensor location
     display.setRotation(2);
     if (isOutside)
@@ -51,6 +47,15 @@ void displaySensorReadings(TFT_eSPI display, bool isOutside, float temperature, 
     }
     // Reset text rotation back to normal
     display.setRotation(1);
+}
+
+// Displays the temperature and relative humidity for the in- or outside
+void displaySensorReadings(TFT_eSPI display, bool isOutside, float temperature, float relativeHumidity)
+{
+    // Clear the screen
+    clearDisplay(display);
+
+    displayInsideOutsideIndicator(display, isOutside);
 
     // Display temperature with icon
     display.pushImage(0, 0, 64, 64, thermostat);
@@ -71,7 +76,7 @@ void drawGraph(TFT_eSPI &tft, double x, double y, byte dp,
 {
     double gx = 30;                      // Offset for the units on the left
     double gy = DISPLAY_HEIGHT - 15;     // Offset for the units on the bottom
-    double w = DISPLAY_WIDTH - gx - 32;  // Width of the grid
+    double w = DISPLAY_WIDTH - gx - 40;  // Width of the grid
     double h = DISPLAY_HEIGHT - 15 - 32; // Height of the grid
 
     double ydiv,
@@ -160,7 +165,7 @@ void drawLineOnGraph(TFT_eSPI &tft, double x, double y, byte dp,
 {
     double gx = 30;                      // Offset for the units on the left
     double gy = DISPLAY_HEIGHT - 15;     // Offset for the units on the bottom
-    double w = DISPLAY_WIDTH - gx - 32;  // Width of the grid
+    double w = DISPLAY_WIDTH - gx - 40;  // Width of the grid
     double h = DISPLAY_HEIGHT - 15 - 32; // Height of the grid
 
     double ydiv, xdiv;
@@ -216,15 +221,37 @@ void drawLineOnGraph(TFT_eSPI &tft, double x, double y, byte dp,
 }
 
 // Displays the historical temperature or relative humidity data from the last hour for the in- or outside
-void drawHistoryGraph(TFT_eSPI &tft, double x, double y, bool &redrawGraph, bool &updateLine, WeatherSensorMessage history[], bool displayTemperature)
+void drawHistoryGraph(TFT_eSPI &tft, bool isOutside, WeatherSensorMessage history[], bool displayTemperature)
 {
+    double x, y;
+    bool redrawGraph = true, updateLine = true;
+
     double xMinValue = 0;
     double xMaxValue = HISTORY_SIZE;
     double xInterval = 10;
 
-    double yMinValue = -1;
-    double yMaxValue = 1;
-    double yInterval = .25;
+    double yMinValue = 999;
+    double yMaxValue = -999;
+    double yInterval;
+
+    for (int i = 0; i < HISTORY_SIZE; i++)
+    {
+        if (displayTemperature)
+        {
+            yMinValue = min((float)yMinValue, history[i].temperature - 1);
+            yMaxValue = max((float)yMaxValue, history[i].temperature + 1);
+        }
+        else
+        {
+            yMinValue = min((float)max(yMinValue, 0.0), history[i].relativeHumidity);
+            yMaxValue = max((float)min(yMaxValue, 100.0), history[i].relativeHumidity);
+        }
+        yInterval = (yMaxValue - yMinValue) / 10;
+    }
+
+    clearDisplay(tft);
+
+    displayInsideOutsideIndicator(tft, isOutside);
 
     drawGraph(tft, x, y, 1,
               xMinValue, xMaxValue, xInterval,
@@ -234,7 +261,6 @@ void drawHistoryGraph(TFT_eSPI &tft, double x, double y, bool &redrawGraph, bool
 
     for (x = 0; x < HISTORY_SIZE; x++)
     {
-        // y = sin(x);
         y = history[(int)x].temperature;
         drawLineOnGraph(tft, x + 1, y, 1,
                         xMinValue, xMaxValue, xInterval,

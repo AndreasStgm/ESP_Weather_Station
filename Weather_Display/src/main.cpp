@@ -72,17 +72,6 @@ void setup()
   display.setRotation(1);
   display.fillScreen(TFT_BLACK);
 
-  // TESTING THE GRAPH DRAWING CODE I FOUND
-  Serial.begin(115200);
-  clearDisplay(display);
-  double x, y;
-  bool redrawGraph = true, updateLine = true;
-
-  drawHistoryGraph(display, x, y, redrawGraph, updateLine, insideWeatherHistoryData, true);
-
-  delay(5000);
-  // TEST END
-
   display.setCursor(0, 4, 4);
   display.setTextColor(TFT_WHITE);
   display.println("ESP Weather Station\n          by AndreasStgm\n==========================\n");
@@ -219,22 +208,38 @@ void stateHandler()
   switch (currentDisplayState)
   {
   case DisplayState::UPDATE:
-    // Determine if outside or inside data should be displayed
-    if (isCurrentlyDisplayingOutside)
+    // Determine if history or current data should be shown
+    if (isCurrentlyDisplayingHistory)
     {
-      // Get the last item of the array
-      WeatherSensorMessage lastOutsideWeatherData = outsideWeatherHistoryData[HISTORY_SIZE - 1];
-
-      // Display outside data
-      displaySensorReadings(display, isCurrentlyDisplayingOutside, lastOutsideWeatherData.temperature, lastOutsideWeatherData.relativeHumidity);
+      // Determine if outside or inside data should be displayed
+      if (isCurrentlyDisplayingOutside)
+      {
+        drawHistoryGraph(display, isCurrentlyDisplayingOutside, outsideWeatherHistoryData, true);
+      }
+      else
+      {
+        drawHistoryGraph(display, isCurrentlyDisplayingOutside, insideWeatherHistoryData, true);
+      }
     }
     else
     {
-      // Get the last item of the array
-      WeatherSensorMessage lastInsideWeatherData = insideWeatherHistoryData[HISTORY_SIZE - 1];
+      // Determine if outside or inside data should be displayed
+      if (isCurrentlyDisplayingOutside)
+      {
+        // Get the last item of the array
+        WeatherSensorMessage lastOutsideWeatherData = outsideWeatherHistoryData[HISTORY_SIZE - 1];
 
-      // Display inside data
-      displaySensorReadings(display, isCurrentlyDisplayingOutside, lastInsideWeatherData.temperature, lastInsideWeatherData.relativeHumidity);
+        // Display outside data
+        displaySensorReadings(display, isCurrentlyDisplayingOutside, lastOutsideWeatherData.temperature, lastOutsideWeatherData.relativeHumidity);
+      }
+      else
+      {
+        // Get the last item of the array
+        WeatherSensorMessage lastInsideWeatherData = insideWeatherHistoryData[HISTORY_SIZE - 1];
+
+        // Display inside data
+        displaySensorReadings(display, isCurrentlyDisplayingOutside, lastInsideWeatherData.temperature, lastInsideWeatherData.relativeHumidity);
+      }
     }
     // Complete the state by setting it back to waiting
     currentDisplayState = DisplayState::WAITING;
